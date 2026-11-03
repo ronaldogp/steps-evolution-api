@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Passo a Passo – Servidor Oracle + Evolution API</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:#f4f6f9;color:#1f2937}
+  header{background:#c74634;color:#fff;padding:22px;text-align:center}
+  header h1{margin:0;font-size:24px}
+  .wrap{max-width:900px;margin:0 auto;padding:20px}
+  .vars{position:sticky;top:0;z-index:10;background:#fff;border:2px solid #c74634;border-radius:10px;padding:10px 12px;margin-bottom:16px;box-shadow:0 4px 12px rgba(0,0,0,.08)}
+  .vars h2{margin:0 120px 6px 0;font-size:15px;color:#c74634}
+  .trust{margin:0 120px 8px 0;font-size:12px;line-height:1.45;color:#000}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:6px}
+  .grid label{font-size:11px;font-weight:600;color:#374151}
+  .grid input{width:100%;padding:5px 7px;border:1px solid #cbd5e1;border-radius:6px;font-family:Consolas,monospace;font-size:12px}
+  .toggle{font-size:12px;cursor:pointer;background:none;border:none;color:#c74634;float:right;padding:2px 0}
+  .panel-label{margin:6px 0 0;font-size:11px;font-weight:600;color:#374151}
+  #panel-body.is-hidden{display:none}
+  .privacy{font-size:12px;line-height:1.45;color:#000;background:#fff7ed;border:1px solid #f3d19a;border-radius:8px;padding:8px 10px;margin:8px 0 0}
+  .clear-btn{display:inline-block;margin-top:6px;background:#fff;border:1px solid #c74634;color:#c74634;border-radius:6px;padding:4px 8px;font-size:12px;cursor:pointer;font-family:inherit}
+  .clear-btn:hover{background:#c74634;color:#fff}
+  .intro{background:#fff7ed;border:1px solid #f3d19a;border-radius:12px;padding:14px 16px;margin-bottom:16px;color:#000;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  .intro ul{margin:0;padding-left:18px}
+  .intro li{margin:7px 0;font-size:14.5px;line-height:1.5;color:#000}
+  .intro a{color:#000}
+  .step{background:#fff;border-radius:10px;padding:16px 18px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  .step .n{display:inline-block;background:#c74634;color:#fff;border-radius:50%;width:30px;height:30px;line-height:30px;text-align:center;font-weight:700;margin-right:8px}
+  .step p{display:inline;font-weight:600}
+  .note{background:#fff7ed;border-left:4px solid #f59e0b;padding:10px;margin-top:10px;border-radius:4px;font-size:14px}
+  table{border-collapse:collapse;margin-top:10px}
+  td,th{border:1px solid #d1d5db;padding:6px 14px;font-family:Consolas,monospace}
+  th{background:#f3f4f6}
+  .v{color:#16a34a;font-weight:700}
+  .shot{display:block;max-width:100%;height:auto;margin-top:12px;border:1px solid #d1d5db;border-radius:8px;cursor:zoom-in}
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:100;cursor:zoom-out}
+  .lightbox img{max-width:95%;max-height:95%;border-radius:8px}
+  .code{background:#141414;border:1px solid #2a2a2a;border-radius:12px;margin-top:12px;overflow:hidden}
+  .code-head{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;color:#9ca3af;font-size:13px;font-family:Consolas,monospace}
+  .code-head button{background:none;border:none;color:#9ca3af;cursor:pointer;padding:4px 6px;border-radius:5px}
+  .code-head button:hover{background:#2a2a2a;color:#fff}
+  .code-body{background:#0d0d0d;margin:0 10px 10px;border:1px solid #262626;border-radius:8px;padding:12px 0;overflow-x:auto}
+  .code-body pre{margin:0;font-family:Consolas,Menlo,monospace;font-size:13.5px;line-height:1.6;color:#e5e7eb}
+  .ln{display:inline-block;width:42px;text-align:right;padding-right:16px;color:#6b7280;user-select:none}
+  .vars .code{margin-top:3px;border-radius:8px}
+  .vars .code-head{padding:2px 8px;font-size:12px}
+  .vars .code-body{margin:0 6px 6px;padding:1px 0;border-radius:6px}
+  .vars .code-body pre{font-size:12.5px;line-height:1.35}
+  .vars .ln{width:26px;padding-right:8px}
+  .cmd{color:#c792ea}.key{color:#89ddff}.str{color:#c3e88d}.fill{color:#4ade80;font-weight:700}.ph{color:#f87171;font-weight:700}
+  svg{width:17px;height:17px;vertical-align:middle}
+  .toast{position:fixed;bottom:20px;right:20px;background:#16a34a;color:#fff;padding:10px 16px;border-radius:8px;display:none}
+</style>
+</head>
+<body>
+<header><h1>Passo a Passo – Servidor Oracle Cloud + Evolution API</h1></header>
+
+<div class="wrap">
+  <div class="vars">
+    <button class="toggle" type="button" id="toggle-btn">mostrar/ocultar</button>
+    <h2>Preencha as variáveis (substituídas automaticamente em todo o guia)</h2>
+    <p class="trust">Nada do que você digita sai deste navegador. A chave API e a senha do banco não são salvas.</p>
+    <div id="panel-body" class="is-hidden">
+      <div class="grid" id="grid">
+        <div><label>ssh-key-XXXX-XX-XX.key</label><input data-var="ssh-key-XXXX-XX-XX.key" placeholder="ssh-key-2026-10-30.key" autocomplete="off" spellcheck="false"></div>
+        <div><label>SUA_CHAVE_FORTE</label><input data-var="SUA_CHAVE_FORTE" data-sensitive="1" placeholder="chave API forte" autocomplete="off" spellcheck="false"></div>
+        <div><label>SENHA_DB</label><input data-var="SENHA_DB" data-sensitive="1" placeholder="senha do banco" autocomplete="off" spellcheck="false"></div>
+        <div><label>SEU_IP_PUBLICO</label><input data-var="SEU_IP_PUBLICO" placeholder="137.131.214.46" autocomplete="off" spellcheck="false"></div>
+        <div><label>PORTAS</label><input data-var="PORTA" value="8080:8080" autocomplete="off" spellcheck="false"></div>
+        <div><label>SUA_NOVA_URL</label><input data-var="SUA_NOVA_URL" placeholder="evolution-teste.duckdns.org" autocomplete="off" spellcheck="false"></div>
+        <div><label>Nova_Instância_Evolution_Api</label><input data-var="Nova_Instância_Evolution_Api" placeholder="nome da instância" autocomplete="off" spellcheck="false"></div>
+      </div>
+      <div class="panel-label">Conexão SSH</div>
+      <div id="panel-ssh"></div>
+      <div class="panel-label">Manager</div>
+      <div id="panel-manager"></div>
+      <div class="panel-label">Link para configurar o Evolution API no N8N</div>
+      <div id="panel-n8n"></div>
+      <div class="privacy">
+        Este arquivo não envia dados para nenhum servidor. A chave API e a senha do banco ficam só nesta aba e somem ao fechá-la. Os demais campos ficam gravados apenas neste navegador, para não precisar preencher de novo.
+        <br><button type="button" class="clear-btn" id="clear-btn">Limpar dados salvos neste navegador</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="intro">
+    <ul>
+      <li>Acesse o site <a href="https://cloud.oracle.com" target="_blank" rel="noopener">cloud.oracle.com</a>. Mude pra o Brasil, se assim preferir.</li>
+      <li>Clique em Sign Up (Inscrever-se) e preencha o formulário.</li>
+      <li>Quando chegar na opção Customer type selecione Individual.</li>
+      <li>Anote o nome da conta.</li>
+      <li>O seu usuário é o e-mail utilizado para se cadastrar. Não é o nome da conta.</li>
+      <li>Depois que concluir todos os passos de cadastro, será necessário mudar do modo FREE para o modo PAGAMENTO CONFORME O USO (pay-as-you-go). Nenhuma cobrança será feita. Este processo de mudança pode demorar até uma semana. Quando for concluído você vai receber um e-mail.</li>
+      <li>Em algum momento será necessário instalar um app autenticador da Oracle para logar no site.</li>
+    </ul>
+  </div>
+
+  <div id="steps"></div>
+</div>
+<div class="toast" id="toast">Copiado!</div>
+<div class="lightbox" id="lightbox" onclick="this.style.display='none'"><img id="lightbox-img" alt=""></div>
+
+<script>
+const ICON_DL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v3h16v-3"/></svg>';
+const ICON_CP='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>';
+
+const COMPOSE = (serverUrl)=>`services:
+  evolution-api:
+    image: evoapicloud/evolution-api:latest
+    container_name: evolution_api
+    restart: always
+    ports:
+      - "PORTA"
+    environment:
+      - SERVER_URL=${serverUrl}
+      - AUTHENTICATION_API_KEY=SUA_CHAVE_FORTE
+      - DATABASE_ENABLED=true
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://evolution:SENHA_DB@postgres:5432/evolution
+      - CACHE_REDIS_ENABLED=true
+      - CACHE_REDIS_URI=redis://redis:6379/6
+      - CACHE_LOCAL_ENABLED=false
+    volumes:
+      - evolution_instances:/evolution/instances
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      - POSTGRES_USER=evolution
+      - POSTGRES_PASSWORD=SENHA_DB
+      - POSTGRES_DB=evolution
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    restart: always
+    volumes:
+      - redis_data:/data
+
+volumes:
+  evolution_instances:
+  pg_data:
+  redis_data:`;
+
+const SSH = 'ssh -i "ssh-key-XXXX-XX-XX.key" ubuntu@SEU_IP_PUBLICO';
+
+const PANEL = {
+  ssh: {lang:"bash", code:SSH, file:"conectar.sh"},
+  manager: {lang:"text", code:"https://SUA_NOVA_URL/manager", file:"manager.txt"},
+  n8n: {lang:"text", code:"https://SUA_NOVA_URL/message/sendText/Nova_Instância_Evolution_Api", file:"n8n.txt"}
+};
+
+const STEPS = [
+ ["Clique no menu que está no alto à esquerda."],
+ ["Compute > Instances."],
+ ["Clique em <b>Create Instance</b>."],
+ ["Coloque o nome da sua preferência."],
+ ["Role a tela e clique em <b>Change Image</b>."],
+ ["Clique em <b>Ubuntu</b>."],
+ ["Role a tela, selecione <b>Ubuntu 24.04</b> e clique em <b>Select Image</b>."],
+ ["Role a tela e clique em <b>Change Shape</b>."],
+ ["Selecione as opções em destaque."],
+ ["Role a tela, selecione a opção informada e clique em <b>Select Shape</b>."],
+ ["Clique em <b>Next</b> (embaixo à direita) duas vezes para configurar a rede (Networking). Depois clique em <b>Create New Virtual</b>."],
+ ["Em <b>Add SSH Keys</b> clique em <b>Download Private Key</b>. Guarde esta chave com cuidado."],
+ ["Clique em <b>Next</b> duas vezes e depois em <b>Create</b>."],
+ ["Com a instância criada, clique em <b>Instances</b> para retornar à tela inicial."],
+ ["Veja que a instância já está em execução. Copie o <b>Public IP</b> e preencha a variável <span class='v'>SEU_IP_PUBLICO</span> no topo."],
+ ["Agora vamos liberar as portas de acesso:",null,null,null,
+  "<table><tr><th>Source CIDR</th><th>Protocolo</th><th>Porta</th></tr><tr><td>0.0.0.0/0</td><td>TCP</td><td>80</td></tr><tr><td>0.0.0.0/0</td><td>TCP</td><td>443</td></tr><tr><td>0.0.0.0/0</td><td>TCP</td><td>8080</td></tr></table>"],
+ ["Clique na instância criada."],
+ ["Clique em <b>Networking</b>. Depois clique em <b>Subnet</b>."],
+ ["Clique em <b>Security</b>."],
+ ["Clique em <b>Default Security...</b>"],
+ ["Clique em <b>Security Rules</b>."],
+ ["Clique em <b>Add Ingress Rules</b>."],
+ ["Configure a liberação da porta 80. Somente os dois campos em destaque devem ser preenchidos. Clique em <b>Add Ingress Rules</b> (embaixo à direita) para salvar."],
+ ["Repita os itens 22 e 23 para as portas 443 e 8080."],
+ ["No Windows, vá até a pasta onde foi baixada a chave <span class='v'>ssh-key-XXXX-XX-XX.key</span>, clique com o botão direito na parte vazia da janela e clique em <b>Abrir no Terminal</b>."],
+ ["Preencha todas as variáveis no painel do topo da página antes de continuar."],
+ ["Atenção antes de conectar:",null,null,null,
+  "<div class='note'><b>ATENÇÃO 1:</b> Se der erro de permissão da chave no Windows: botão direito no arquivo → Propriedades → Segurança → Avançado, desative a herança e deixe apenas o seu usuário com acesso.<br><br><b>ATENÇÃO 2:</b> Se demorar a executar comandos, o servidor desloga. Quando acontecer, execute o comando de conexão novamente.</div>"],
+ ["Copie, cole e execute o comando abaixo no terminal.", SSH,"bash","conectar.sh"],
+ ["Se a mensagem abaixo for exibida, digite <b>yes</b>.",
+  "The authenticity of host 'SEU_IP_PUBLICO (SEU_IP_PUBLICO)' can't be established.\nED25519 key fingerprint is SHA256:....\nThis key is not known by any other names.\nAre you sure you want to continue connecting (yes/no/[fingerprint])? yes","text","mensagem.txt"],
+ ["Reconfigure o firewall interno do Linux.",
+  "sudo iptables -F INPUT\nsudo netfilter-persistent save","bash","firewall.sh"],
+ ["Instale o Docker. Este processo pode demorar um pouco. Aguarde até o prompt voltar.",
+  "sudo apt update && sudo apt upgrade -y\ncurl -fsSL https://get.docker.com | sudo sh\nsudo usermod -aG docker ubuntu\nexit","bash","docker.sh"],
+ ["Conecte novamente ao servidor.", SSH,"bash","conectar.sh"],
+ ["Confirme que <span class='v'>PORTAS</span> está como <b>8080:8080</b> no painel do topo."],
+ ["Suba a Evolution API.",
+  "mkdir ~/evolution && cd ~/evolution\ncat << 'EOF' > docker-compose.yml\n"+COMPOSE("http://SEU_IP_PUBLICO:8080")+"\nEOF","yaml","docker-compose.sh"],
+ ["Execute os comandos abaixo.","docker compose up -d\ndocker compose logs -f evolution-api","bash","subir.sh"],
+ ["Quando a tela \"congelar\" exibindo os logs, pressione <b>CTRL + C</b> para voltar ao prompt."],
+ ["Configure um domínio gratuito em <a href='https://www.duckdns.org/domains' target='_blank'>duckdns.org</a>. Faça login com o Google."],
+ ["Digite o nome do site (ex.: evolution-teste) e clique em <b>add domain</b>."],
+ ["Apague o IP existente, informe o IP público da Oracle e clique em <b>update ip</b>. Preencha a variável <span class='v'>SUA_NOVA_URL</span> no topo (ex.: evolution-teste.duckdns.org)."],
+ ["Agora vamos tornar o nosso site seguro. Configure HTTPS (Caddy). Aguarde todo o processo até retornar ao prompt.",
+  "sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https curl\ncurl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg\ncurl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list\nsudo apt update && sudo apt install -y caddy","bash","caddy-install.sh"],
+ ["Agora execute os comandos abaixo.",
+  "sudo tee /etc/caddy/Caddyfile > /dev/null << 'EOF'\nSUA_NOVA_URL {\n    reverse_proxy localhost:8080\n}\nEOF\nsudo systemctl reload caddy","bash","caddyfile.sh"],
+ ["Altere a variável <span class='v'>PORTAS</span> no topo para <b>127.0.0.1:8080:8080</b>. O SERVER_URL usará automaticamente https://SUA_NOVA_URL."],
+ ["Recrie o docker-compose com o domínio.",
+  "cd ~/evolution\ncat << 'EOF' > docker-compose.yml\n"+COMPOSE("https://SUA_NOVA_URL")+"\nEOF","yaml","docker-compose-https.sh"],
+ ["Execute o comando.","docker compose up -d\ndocker compose logs -f evolution-api","bash","subir.sh"],
+ ["Agora abra a URL:","https://SUA_NOVA_URL/manager","text","url-final.txt"],
+ ["Faça login com a chave API que você usou para preencher o campo <span class='v'>SUA_CHAVE_FORTE</span> no topo."],
+ ["Clique em <b>Instance</b>."],
+ ["Escolha um nome e clique em <b>Save</b>."],
+ ["Agora clique na engrenagem."],
+ ["Clique em <b>Events</b> > <b>Webhoot</b>. Clique em ativar webhook. Cole a url de teste ou de produção do webhook."],
+ ["Role a tela e ative <b>MESSAGES_UPSERT</b>. Depois clique em <b>Save</b>. Toque em <b>Dashboard</b> no alto a esquerda."],
+ ["Clique em <b>Get QR Code</b>. Um QR Code será exibido."],
+ ["Abra o seu WhatsApp. Na tela inicial toque nos <b>3 pontinhos</b>. Toque em <b>Dispositivos conectados</b>. Toque em <b>conectar dispositivos</b>. Aponte o seu celular para este QR Code."],
+];
+
+const TOKENS=["ssh-key-XXXX-XX-XX.key","SUA_CHAVE_FORTE","SENHA_DB","SEU_IP_PUBLICO","SUA_NOVA_URL","Nova_Instância_Evolution_Api","PORTA"];
+const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const vals=()=>{const o={};document.querySelectorAll("[data-var]").forEach(i=>o[i.dataset.var]=i.value.trim());return o};
+const reTok=new RegExp(TOKENS.map(t=>t.replace(/[.\-]/g,"\\$&")).join("|"),"g");
+
+function fillPlain(tpl){const v=vals();return tpl.replace(reTok,m=>v[m]||m)}
+
+function highlight(line,lang){
+  const v=vals();
+  let parts=[],last=0;
+  line.replace(reTok,(m,i)=>{parts.push([line.slice(last,i),0]);parts.push([m,1]);last=i+m.length});
+  parts.push([line.slice(last),0]);
+  return parts.map(([t,isVar])=>{
+    if(isVar){const val=v[t];return val?`<span class="fill">${esc(val)}</span>`:`<span class="ph">${esc(t)}</span>`}
+    let h=esc(t);
+    if(lang==="bash") h=h.replace(/^(\s*)(sudo|curl|mkdir|cd|cat|ssh|docker|exit|nano)\b/,'$1<span class="cmd">$2</span>').replace(/(&amp;&amp;\s*)(\w+)/g,'$1<span class="cmd">$2</span>');
+    if(lang==="yaml") h=h.replace(/^(\s*)([\w-]+):/,'$1<span class="key">$2</span>:').replace(/(- )([A-Z_]+)=/,'$1<span class="str">$2</span>=');
+    return h;
+  }).join("");
+}
+
+function imgsHTML(n){
+  const src=`img/item-${n}.png`;
+  return `<img class="shot" src="${src}" alt="Item ${n}" loading="lazy" onclick="zoom(this.src)" onerror="this.remove()">`;
+}
+
+function zoom(src){document.getElementById("lightbox-img").src=src;document.getElementById("lightbox").style.display="flex"}
+
+function codeBlock(id){
+  const item=PANEL[id];
+  const lines=item.code.split("\n").map((l,k)=>`<span class="ln">${k+1}</span>${highlight(l,item.lang)}`).join("\n");
+  return `<div class="code"><div class="code-head"><span>${item.lang}</span><span>
+    <button title="Baixar" onclick="dlPanel('${id}')">${ICON_DL}</button>
+    <button title="Copiar" onclick="cpPanel('${id}')">${ICON_CP}</button></span></div>
+    <div class="code-body"><pre>${lines}</pre></div></div>`;
+}
+
+function renderPanel(){
+  ["ssh","manager","n8n"].forEach(id=>{
+    const el=document.getElementById("panel-"+id);
+    if(el) el.innerHTML=codeBlock(id);
+  });
+}
+
+function render(){
+  const box=document.getElementById("steps");box.innerHTML="";
+  STEPS.forEach(([txt,code,lang,file,extra],i)=>{
+    const n=i+1;
+    const d=document.createElement("div");d.className="step";
+    let h=`<span class="n">${n}</span><p>${txt}</p>${extra||""}${imgsHTML(n)}`;
+    if(code){
+      const lines=code.split("\n").map((l,k)=>`<span class="ln">${k+1}</span>${highlight(l,lang)}`).join("\n");
+      h+=`<div class="code"><div class="code-head"><span>${lang}</span><span>
+        <button title="Baixar" onclick="dl(${i})">${ICON_DL}</button>
+        <button title="Copiar" onclick="cp(${i})">${ICON_CP}</button></span></div>
+        <div class="code-body"><pre>${lines}</pre></div></div>`;
+    }
+    d.innerHTML=h;box.appendChild(d);
+  });
+}
+
+function toast(msg){const t=document.getElementById("toast");t.textContent=msg||"Copiado!";t.style.display="block";setTimeout(()=>t.style.display="none",1500)}
+function cp(i){navigator.clipboard.writeText(fillPlain(STEPS[i][1])).then(()=>toast())}
+function dl(i){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([fillPlain(STEPS[i][1])],{type:"text/plain"}));a.download=STEPS[i][3]||"codigo.txt";a.click()}
+function cpPanel(id){navigator.clipboard.writeText(fillPlain(PANEL[id].code)).then(()=>toast())}
+function dlPanel(id){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([fillPlain(PANEL[id].code)],{type:"text/plain"}));a.download=PANEL[id].file;a.click()}
+
+document.querySelectorAll("[data-sensitive]").forEach(inp=>localStorage.removeItem("var_"+inp.dataset.var));
+document.querySelectorAll("[data-var]").forEach(inp=>{
+  const k="var_"+inp.dataset.var;
+  if(!inp.dataset.sensitive&&localStorage[k])inp.value=localStorage[k];
+  inp.addEventListener("input",()=>{
+    if(inp.dataset.sensitive)localStorage.removeItem(k);
+    else localStorage[k]=inp.value;
+    render();renderPanel();
+  });
+});
+document.getElementById("clear-btn").addEventListener("click",()=>{
+  document.querySelectorAll("[data-var]").forEach(inp=>{
+    localStorage.removeItem("var_"+inp.dataset.var);
+    inp.value=inp.dataset.var==="PORTA"?"8080:8080":"";
+  });
+  render();renderPanel();toast("Dados apagados");
+});
+document.getElementById("toggle-btn").addEventListener("click",()=>{
+  document.getElementById("panel-body").classList.toggle("is-hidden");
+});
+render();
+renderPanel();
+</script>
+</body>
+</html>
